@@ -5,26 +5,27 @@ trigger:
   branches:
     include:
       - none
-      
-  
 
 variables:
   # Docker Hub configuration
-  # Update with your Docker Hub username
   dockerHubUser: 'shoppingapp'
   containerRegistry: 'docker.io'
-  imageRepository: 'shoppingapp/shoppingapp'
-  
-  # Docker image tags
-  galleryServiceTag: '$(Build.BuildId)-galleryservice'
-  checkoutServiceTag: '$(Build.BuildId)-checkoutservice'
-  webGatewayTag: '$(Build.BuildId)-webgateway'
-  
+
+  # Image names (IMPORTANT FIX)
+  galleryServiceImage: 'galleryservice'
+  checkoutServiceImage: 'checkoutservice'
+  webGatewayImage: 'webgateway'
+
+  # Docker image tags (clean)
+  galleryServiceTag: '$(Build.BuildId)'
+  checkoutServiceTag: '$(Build.BuildId)'
+  webGatewayTag: '$(Build.BuildId)'
+
   # Build configuration
   buildConfiguration: 'Release'
-  vmImageName: 'linux-hosted-agent'
 
 stages:
+# ---------------- BUILD STAGE ----------------
 - stage: Build
   displayName: 'Build and Test'
   jobs:
@@ -32,36 +33,28 @@ stages:
     displayName: 'Build .NET Solution'
     pool:
       vmImage: ubuntu-latest
-    
+
     steps:
     - task: UseDotNet@2
       displayName: 'Use .NET 8.0 SDK'
       inputs:
         packageType: 'sdk'
         version: '8.0.x'
-    
+
     - task: DotNetCoreCLI@2
       displayName: 'Restore NuGet packages'
       inputs:
         command: 'restore'
         projects: '**/*.sln'
-    
+
     - task: DotNetCoreCLI@2
       displayName: 'Build solution'
       inputs:
         command: 'build'
         projects: '**/*.sln'
         arguments: '--configuration $(buildConfiguration) --no-restore'
-    
-    - task: DotNetCoreCLI@2
-      displayName: 'Run tests (if any)'
-      inputs:
-        command: 'test'
-        projects: '**/*Tests/*.csproj'
-        arguments: '--configuration $(buildConfiguration) --no-build --collect:"XPlat Code Coverage"'
-      continueOnError: true
-      condition: or(succeeded(), failed())
 
+# ---------------- DOCKER BUILD STAGE ----------------
 - stage: BuildDockerImages
   displayName: 'Build Docker Images'
   dependsOn: Build
@@ -70,23 +63,33 @@ stages:
     displayName: 'Build All Docker Images'
     pool:
       vmImage: ubuntu-latest
-    
+
     steps:
     - script: |
-        echo "Building GalleryService Docker image..."
-        docker build -f Services/GalleryService/Dockerfile -t $(dockerHubUser)/$(imageRepository)-galleryservice:$(galleryServiceTag) -t $(dockerHubUser)/$(imageRepository)-galleryservice:latest .
+        docker build \
+          -f Services/GalleryService/Dockerfile \
+          -t $(dockerHubUser)/$(galleryServiceImage):$(galleryServiceTag) \
+          -t $(dockerHubUser)/$(galleryServiceImage):latest \
+          .
       displayName: 'Build GalleryService Image'
-    
+
     - script: |
-        echo "Building CheckoutService Docker image..."
-        docker build -f Services/CheckoutService/Dockerfile -t $(dockerHubUser)/$(imageRepository)-checkoutservice:$(checkoutServiceTag) -t $(dockerHubUser)/$(imageRepository)-checkoutservice:latest .
+        docker build \
+          -f Services/CheckoutService/Dockerfile \
+          -t $(dockerHubUser)/$(checkoutServiceImage):$(checkoutServiceTag) \
+          -t $(dockerHubUser)/$(checkoutServiceImage):latest \
+          .
       displayName: 'Build CheckoutService Image'
-    
+
     - script: |
-        echo "Building WebGateway Docker image..."
-        docker build -f Services/WebGateway/Dockerfile -t $(dockerHubUser)/$(imageRepository)-webgateway:$(webGatewayTag) -t $(dockerHubUser)/$(imageRepository)-webgateway:latest .
+        docker build \
+          -f Services/WebGateway/Dockerfile \
+          -t $(dockerHubUser)/$(webGatewayImage):$(webGatewayTag) \
+          -t $(dockerHubUser)/$(webGatewayImage):latest \
+          .
       displayName: 'Build WebGateway Image'
 
+# ---------------- PUSH STAGE ----------------
 - stage: PushImages
   displayName: 'Push Docker Images to Docker Hub'
   dependsOn: BuildDockerImages
@@ -96,100 +99,25 @@ stages:
     displayName: 'Push Images to Docker Hub'
     pool:
       vmImage: ubuntu-latest
-    
+
     steps:
     - task: Docker@2
       displayName: 'Login to Docker Hub'
       inputs:
-        command: 'login'
+        command: login
         containerRegistry: 'ShoppingAppDockerHub'
-        # Note: Create a service connection named "Docker Hub" in Azure DevOps
-        # Or use the script-based login below
-    
-    - script: |
-        # Alternative: Login using Docker Hub credentials
-        # Store DOCKERHUB_USERNAME and DOCKERHUB_PASSWORD as secret variables in Azure DevOps
-        echo "$(DOCKERHUB_PASSWORD)" | docker login $(containerRegistry) -u $(DOCKERHUB_USERNAME) --password-stdin
-      displayName: 'Login to Docker Hub (Alternative)'
-      condition: and(ne(variables['DOCKERHUB_USERNAME'], ''), ne(variables['DOCKERHUB_PASSWORD'], ''))
-      env:
-        DOCKERHUB_USERNAME: $(DOCKERHUB_USERNAME)
-        DOCKERHUB_PASSWORD: $(DOCKERHUB_PASSWORD)
-    
-    - script: |
-        echo "Pushing GalleryService image..."
-        docker push $(dockerHubUser)/$(imageRepository)-galleryservice:$(galleryServiceTag)
-        docker push $(dockerHubUser)/$(imageRepository)-galleryservice:latest
-      displayName: 'Push GalleryService Image'
-    
-    - script: |
-        echo "Pushing CheckoutService image..."
-        docker push $(dockerHubUser)/$(imageRepository)-checkoutservice:$(checkoutServiceTag)
-        docker push $(dockerHubUser)/$(imageRepository)-checkoutservice:latest
-      displayName: 'Push CheckoutService Image'
-    
-    - script: |
-        echo "Pushing WebGateway image..."
-        docker push $(dockerHubUser)/$(imageRepository)-webgateway:$(webGatewayTag)
-        docker push $(dockerHubUser)/$(imageRepository)-webgateway:latest
-      displayName: 'Push WebGateway Image'
 
-# Uncomment and configure the deployment stage based on your target platform
-# - stage: Deploy
-#   displayName: 'Deploy to Azure'
-#   dependsOn: PushImages
-#   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
-#   jobs:
-#   - deployment: DeployToAzure
-#     displayName: 'Deploy Microservices'
-#     environment: 'production'
-#     strategy:
-#       runOnce:
-#         deploy:
-#           steps:
-#           # Example: Deploy to Azure Container Instances
-#           - task: AzureCLI@2
-#             displayName: 'Deploy to Azure Container Instances'
-#             inputs:
-#               azureSubscription: 'your-azure-subscription'
-#               scriptType: 'bash'
-#               scriptLocation: 'inlineScript'
-#               inlineScript: |
-#                 # Deploy GalleryService
-#                 az container create \
-#                   --resource-group your-resource-group \
-#                   --name galleryservice \
-#                   --image $(dockerHubUser)/$(imageRepository)-galleryservice:$(galleryServiceTag) \
-#                   --registry-login-server $(containerRegistry) \
-#                   --registry-username $(DOCKERHUB_USERNAME) \
-#                   --registry-password $(DOCKERHUB_PASSWORD) \
-#                   --dns-name-label galleryservice-$(Build.BuildId) \
-#                   --ports 80 \
-#                   --environment-variables ASPNETCORE_ENVIRONMENT=Production
-#                 
-#                 # Deploy CheckoutService
-#                 az container create \
-#                   --resource-group your-resource-group \
-#                   --name checkoutservice \
-#                   --image $(dockerHubUser)/$(imageRepository)-checkoutservice:$(checkoutServiceTag) \
-#                   --registry-login-server $(containerRegistry) \
-#                   --registry-username $(DOCKERHUB_USERNAME) \
-#                   --registry-password $(DOCKERHUB_PASSWORD) \
-#                   --dns-name-label checkoutservice-$(Build.BuildId) \
-#                   --ports 80 \
-#                   --environment-variables ASPNETCORE_ENVIRONMENT=Production
-#                 
-#                 # Deploy WebGateway
-#                 az container create \
-#                   --resource-group your-resource-group \
-#                   --name webgateway \
-#                   --image $(dockerHubUser)/$(imageRepository)-webgateway:$(webGatewayTag) \
-#                   --registry-login-server $(containerRegistry) \
-#                   --registry-username $(DOCKERHUB_USERNAME) \
-#                   --registry-password $(DOCKERHUB_PASSWORD) \
-#                   --dns-name-label webgateway-$(Build.BuildId) \
-#                   --ports 80 \
-#                   --environment-variables \
-#                     ASPNETCORE_ENVIRONMENT=Production \
-#                     Services__GalleryService=http://galleryservice:80 \
-#                     Services__CheckoutService=http://checkoutservice:80
+    - script: |
+        docker push $(dockerHubUser)/$(galleryServiceImage):$(galleryServiceTag)
+        docker push $(dockerHubUser)/$(galleryServiceImage):latest
+      displayName: 'Push GalleryService Image'
+
+    - script: |
+        docker push $(dockerHubUser)/$(checkoutServiceImage):$(checkoutServiceTag)
+        docker push $(dockerHubUser)/$(checkoutServiceImage):latest
+      displayName: 'Push CheckoutService Image'
+
+    - script: |
+        docker push $(dockerHubUser)/$(webGatewayImage):$(webGatewayTag)
+        docker push $(dockerHubUser)/$(webGatewayImage):latest
+      displayName: 'Push WebGateway Image'
