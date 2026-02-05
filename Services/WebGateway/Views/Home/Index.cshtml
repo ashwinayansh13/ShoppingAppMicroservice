@@ -1,0 +1,41 @@
+@model List<SharedModels.GalleryItem>
+@{
+    ViewData["Title"] = "Gallery";
+}
+
+<div class="gallery-header">
+    <h1>Photo Gallery Shashi.Talluri</h1>
+    <p>Explore our collection of beautiful images</p>
+    <p style="color:red; font-weight:bold;">(Selection mode enabled: you should see checkboxes labelled 'Select' above each image.)</p>
+</div>
+
+<form asp-controller="Checkout" asp-action="List" method="get">
+    <div class="gallery-grid">
+        @foreach (var item in Model)
+        {
+            <div class="gallery-item">
+                <div style="position:relative; z-index:10; margin-bottom:8px; padding:8px; background-color:#f8f9fa; border:2px solid #667eea; border-radius:4px;">
+                    <label style="display:flex; align-items:center; cursor:pointer; font-weight:bold; color:#333; margin:0;">
+                        <input type="checkbox" name="selectedIds" value="@item.Id" style="margin-right:8px; width:20px; height:20px; cursor:pointer; flex-shrink:0;" />
+                        <span>Select</span>
+                    </label>
+                </div>
+                <a asp-controller="Home" asp-action="Details" asp-route-id="@item.Id">
+                    <div class="gallery-image-container">
+                        <img src="@item.ImageUrl" alt="@item.Title" class="gallery-image" />
+                        <div class="gallery-overlay">
+                            <h3>@item.Title</h3>
+                            <p>@item.Category</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        }
+    </div>
+
+    <div style="margin-top:16px;">
+        <button type="submit" class="btn btn-primary">
+            View selected items
+        </button>
+    </div>
+</form>

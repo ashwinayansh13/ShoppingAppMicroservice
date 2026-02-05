@@ -1,0 +1,39 @@
+{
+  "Version": 1,
+  "Hash": "Nl/z1w68tT4HU0Pzt7mEDLeqD61rY5ZcgoOFX0HyJBM=",
+  "Source": "WebGateway",
+  "BasePath": "_content/WebGateway",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [
+    {
+      "Name": "WebGateway\\wwwroot",
+      "Source": "WebGateway",
+      "ContentRoot": "C:\\Users\\Shashi\\OneDrive\\Desktop\\Pawan Class\\SimpleProject\\Services\\WebGateway\\wwwroot\\",
+      "BasePath": "_content/WebGateway",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": [
+    {
+      "Identity": "C:\\Users\\Shashi\\OneDrive\\Desktop\\Pawan Class\\SimpleProject\\Services\\WebGateway\\wwwroot\\css\\site.css",
+      "SourceId": "WebGateway",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\Shashi\\OneDrive\\Desktop\\Pawan Class\\SimpleProject\\Services\\WebGateway\\wwwroot\\",
+      "BasePath": "_content/WebGateway",
+      "RelativePath": "css/site.css",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\css\\site.css"
+    }
+  ]
+}

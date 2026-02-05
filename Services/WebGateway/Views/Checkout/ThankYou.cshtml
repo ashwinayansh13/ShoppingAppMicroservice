@@ -1,0 +1,16 @@
+@{
+    ViewData["Title"] = "Thank You";
+}
+
+<div class="details-container text-center">
+    <h1>Thank you!</h1>
+    <p>Your payment has been received.</p>
+    @if (!string.IsNullOrEmpty(ViewBag.OrderId))
+    {
+        <p>Order ID: <strong>@ViewBag.OrderId</strong></p>
+    }
+
+    <a asp-controller="Home" asp-action="Index" class="btn btn-primary mt-3">
+        Back to Gallery
+    </a>
+</div>

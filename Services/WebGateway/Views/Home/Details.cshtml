@@ -1,0 +1,19 @@
+@model SharedModels.GalleryItem
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<div class="details-container">
+    <a asp-controller="Home" asp-action="Index" class="back-link">← Back to Gallery</a>
+    
+    <div class="details-content">
+        <div class="details-image">
+            <img src="@Model.ImageUrl" alt="@Model.Title" />
+        </div>
+        <div class="details-info">
+            <h1>@Model.Title</h1>
+            <span class="category-badge">@Model.Category</span>
+            <p class="description">@Model.Description</p>
+        </div>
+    </div>
+</div>
