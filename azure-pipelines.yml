@@ -1,123 +1,109 @@
-# Azure Pipeline YAML for SimpleProject Microservices
-# This pipeline builds and publishes Docker images to Docker Hub
+# Azure Pipeline YAML for ShoppingApp Microservices
+# Builds .NET solution and Docker images, then pushes to Docker Hub
 
 trigger:
   branches:
     include:
-      - none
+      - main
 
 variables:
   # Docker Hub configuration
   dockerHubUser: 'shoppingapp'
-  containerRegistry: 'docker.io'
-
-  # Image names (IMPORTANT FIX)
-  galleryServiceImage: 'galleryservice'
-  checkoutServiceImage: 'checkoutservice'
-  webGatewayImage: 'webgateway'
-
-  # Docker image tags (clean)
-  galleryServiceTag: '$(Build.BuildId)'
-  checkoutServiceTag: '$(Build.BuildId)'
-  webGatewayTag: '$(Build.BuildId)'
 
   # Build configuration
   buildConfiguration: 'Release'
 
 stages:
-# ---------------- BUILD STAGE ----------------
+# ======================================================
+# STAGE 1: BUILD .NET SOLUTION
+# ======================================================
 - stage: Build
-  displayName: 'Build and Test'
+  displayName: 'Build .NET Solution'
   jobs:
   - job: Build
-    displayName: 'Build .NET Solution'
+    displayName: 'Restore, Build, Test'
     pool:
       vmImage: ubuntu-latest
 
     steps:
     - task: UseDotNet@2
-      displayName: 'Use .NET 8.0 SDK'
+      displayName: 'Use .NET 8 SDK'
       inputs:
         packageType: 'sdk'
         version: '8.0.x'
 
     - task: DotNetCoreCLI@2
-      displayName: 'Restore NuGet packages'
+      displayName: 'Restore NuGet Packages'
       inputs:
-        command: 'restore'
+        command: restore
         projects: '**/*.sln'
 
     - task: DotNetCoreCLI@2
-      displayName: 'Build solution'
+      displayName: 'Build Solution'
       inputs:
-        command: 'build'
+        command: build
         projects: '**/*.sln'
         arguments: '--configuration $(buildConfiguration) --no-restore'
 
-# ---------------- DOCKER BUILD STAGE ----------------
-- stage: BuildDockerImages
-  displayName: 'Build Docker Images'
+    - task: DotNetCoreCLI@2
+      displayName: 'Run Tests'
+      inputs:
+        command: test
+        projects: '**/*Tests/*.csproj'
+        arguments: '--configuration $(buildConfiguration) --no-build'
+      continueOnError: true
+
+# ======================================================
+# STAGE 2: BUILD + PUSH DOCKER IMAGES
+# ======================================================
+- stage: BuildAndPushDockerImages
+  displayName: 'Build and Push Docker Images'
   dependsOn: Build
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/main')
+
   jobs:
-  - job: BuildAllImages
-    displayName: 'Build All Docker Images'
+  - job: BuildAndPush
+    displayName: 'Docker Build & Push'
     pool:
       vmImage: ubuntu-latest
 
     steps:
-    - script: |
-        docker build \
-          -f Services/GalleryService/Dockerfile \
-          -t $(dockerHubUser)/$(galleryServiceImage):$(galleryServiceTag) \
-          -t $(dockerHubUser)/$(galleryServiceImage):latest \
-          .
-      displayName: 'Build GalleryService Image'
-
-    - script: |
-        docker build \
-          -f Services/CheckoutService/Dockerfile \
-          -t $(dockerHubUser)/$(checkoutServiceImage):$(checkoutServiceTag) \
-          -t $(dockerHubUser)/$(checkoutServiceImage):latest \
-          .
-      displayName: 'Build CheckoutService Image'
-
-    - script: |
-        docker build \
-          -f Services/WebGateway/Dockerfile \
-          -t $(dockerHubUser)/$(webGatewayImage):$(webGatewayTag) \
-          -t $(dockerHubUser)/$(webGatewayImage):latest \
-          .
-      displayName: 'Build WebGateway Image'
-
-# ---------------- PUSH STAGE ----------------
-- stage: PushImages
-  displayName: 'Push Docker Images to Docker Hub'
-  dependsOn: BuildDockerImages
-  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
-  jobs:
-  - job: PushAllImages
-    displayName: 'Push Images to Docker Hub'
-    pool:
-      vmImage: ubuntu-latest
-
-    steps:
+    # Login using Docker Hub service connection
     - task: Docker@2
       displayName: 'Login to Docker Hub'
       inputs:
         command: login
         containerRegistry: 'ShoppingAppDockerHub'
 
+    # ------------------ GalleryService ------------------
     - script: |
-        docker push $(dockerHubUser)/$(galleryServiceImage):$(galleryServiceTag)
-        docker push $(dockerHubUser)/$(galleryServiceImage):latest
-      displayName: 'Push GalleryService Image'
+        docker build \
+          -f Services/GalleryService/Dockerfile \
+          -t $(dockerHubUser)/galleryservice:$(Build.BuildId) \
+          -t $(dockerHubUser)/galleryservice:latest \
+          .
+        docker push $(dockerHubUser)/galleryservice:$(Build.BuildId)
+        docker push $(dockerHubUser)/galleryservice:latest
+      displayName: 'Build & Push GalleryService'
 
+    # ------------------ CheckoutService -----------------
     - script: |
-        docker push $(dockerHubUser)/$(checkoutServiceImage):$(checkoutServiceTag)
-        docker push $(dockerHubUser)/$(checkoutServiceImage):latest
-      displayName: 'Push CheckoutService Image'
+        docker build \
+          -f Services/CheckoutService/Dockerfile \
+          -t $(dockerHubUser)/checkoutservice:$(Build.BuildId) \
+          -t $(dockerHubUser)/checkoutservice:latest \
+          .
+        docker push $(dockerHubUser)/checkoutservice:$(Build.BuildId)
+        docker push $(dockerHubUser)/checkoutservice:latest
+      displayName: 'Build & Push CheckoutService'
 
+    # ------------------ WebGateway ----------------------
     - script: |
-        docker push $(dockerHubUser)/$(webGatewayImage):$(webGatewayTag)
-        docker push $(dockerHubUser)/$(webGatewayImage):latest
-      displayName: 'Push WebGateway Image'
+        docker build \
+          -f Services/WebGateway/Dockerfile \
+          -t $(dockerHubUser)/webgateway:$(Build.BuildId) \
+          -t $(dockerHubUser)/webgateway:latest \
+          .
+        docker push $(dockerHubUser)/webgateway:$(Build.BuildId)
+        docker push $(dockerHubUser)/webgateway:latest
+      displayName: 'Build & Push WebGateway'
