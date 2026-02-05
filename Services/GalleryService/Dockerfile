@@ -21,8 +21,11 @@ COPY ["Shared/SharedModels/", "Shared/SharedModels/"]
 COPY ["Services/GalleryService/", "Services/GalleryService/"]
 
 # Build and publish GalleryService
-WORKDIR /src/Services/GalleryService
-RUN dotnet publish -c Release -o /app/publish
+# Build and publish GalleryService
+WORKDIR /src
+RUN dotnet restore
+RUN dotnet publish Services/GalleryService/GalleryService.csproj -c Release -o /app/publish
+
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
