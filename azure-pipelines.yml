@@ -94,7 +94,7 @@ stages:
           -t $(dockerHubUser)/checkoutservice:latest \
           .
         docker push $(dockerHubUser)/checkoutservice:$(Build.BuildId)
-        docker push $(dockerHubUser)/checkoutservice:latest
+        
       displayName: 'Build & Push CheckoutService'
 
     # ------------------ WebGateway ----------------------
