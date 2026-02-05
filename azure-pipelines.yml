@@ -31,7 +31,7 @@ stages:
   - job: Build
     displayName: 'Build .NET Solution'
     pool:
-      name: $(vmImageName)
+      vmImage: ubuntu-latest
     
     steps:
     - task: UseDotNet@2
@@ -69,7 +69,7 @@ stages:
   - job: BuildAllImages
     displayName: 'Build All Docker Images'
     pool:
-      name: $(vmImageName)
+      vmImage: ubuntu-latest
     
     steps:
     - script: |
@@ -95,7 +95,7 @@ stages:
   - job: PushAllImages
     displayName: 'Push Images to Docker Hub'
     pool:
-      name: $(vmImageName)
+      vmImage: ubuntu-latest
     
     steps:
     - task: Docker@2
