@@ -6,14 +6,7 @@ trigger:
     include:
       - none
       
-  paths:
-    include:
-      - Services/*
-      - Shared/*
-      - *.sln
-      - *.csproj
-
-     
+  
 
 variables:
   # Docker Hub configuration
