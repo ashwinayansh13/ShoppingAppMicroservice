@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  galleryservice:
+    build:
+      context: .
+      dockerfile: Services/GalleryService/Dockerfile
+    container_name: galleryservice
+    ports:
+      - "5001:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:80
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+
+  checkoutservice:
+    build:
+      context: .
+      dockerfile: Services/CheckoutService/Dockerfile
+    container_name: checkoutservice
+    ports:
+      - "5002:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:80
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+
+  webgateway:
+    build:
+      context: .
+      dockerfile: Services/WebGateway/Dockerfile
+    container_name: webgateway
+    ports:
+      - "5000:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:80
+      - Services__GalleryService=http://galleryservice:80
+      - Services__CheckoutService=http://checkoutservice:80
+    networks:
+      - microservices-network
+    depends_on:
+      galleryservice:
+        condition: service_healthy
+      checkoutservice:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+networks:
+  microservices-network:
+    driver: bridge
