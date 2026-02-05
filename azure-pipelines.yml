@@ -102,7 +102,7 @@ stages:
       displayName: 'Login to Docker Hub'
       inputs:
         command: 'login'
-        containerRegistry: 'Docker Hub'
+        containerRegistry: $(containerRegistry)
         # Note: Create a service connection named "Docker Hub" in Azure DevOps
         # Or use the script-based login below
     
